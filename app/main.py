@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+
 
 app = FastAPI()
 
@@ -23,3 +24,12 @@ async def create_task(task: TaskCreate):
     tasks.append(task_dict)
 
     return task_dict
+
+
+@app.get("/tasks/{task_id}")
+async def get_task(task_id: int):
+    for task in tasks:
+        if task_id == task["id"]:  
+            return task
+
+    raise HTTPException(status_code=404, detail="Tarefa não encontrada")
