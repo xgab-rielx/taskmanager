@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from app.database import init_db
+from app.database import init_db, get_connection
 
 app = FastAPI()
 
@@ -11,6 +11,18 @@ tasks = [{"id": 1, "title": "Estudar FastAPI", "completed": False}]
 
 @app.get("/tasks")
 async def get_tasks():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM tasks")
+    rows = cursor.fetchall()
+
+    tasks = [
+        {"id": row["id"], "title": row["title"], "completed": bool(row["completed"])}
+        for row in rows
+    ]
+
+    conn.close()
+
     return tasks
 
 
@@ -21,11 +33,17 @@ class TaskCreate(BaseModel):
 
 @app.post("/tasks")
 async def create_task(task: TaskCreate):
-    id_ = max(task["id"] for task in tasks) + 1
-    task_dict = {"id": id_, "title": task.title, "completed": task.completed}
-    tasks.append(task_dict)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO tasks (title, completed) VALUES (?, ?)",
+        (task.title, int(task.completed)),
+    )
+    conn.commit()
+    task_id = cursor.lastrowid
+    conn.close()
 
-    return task_dict
+    return {"id": task_id, "title": task.title, "completed": task.completed}
 
 
 @app.get("/tasks/{task_id}")
