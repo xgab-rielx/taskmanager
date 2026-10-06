@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from app.database import init_db
 
 app = FastAPI()
+
+init_db()
 
 tasks = [{"id": 1, "title": "Estudar FastAPI", "completed": False}]
 
