@@ -71,14 +71,23 @@ class TaskUpdate(BaseModel):
 
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: int, task_update: TaskUpdate):
-    for task in tasks:
-        if task_id == task["id"]:
-            task["title"] = task_update.title
-            task["completed"] = task_update.completed
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE tasks SET title = ?, completed = ? WHERE id = ?",
+        (task_update.title, int(task_update.completed), task_id),
+    )
 
-            return task
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada") 
 
-    raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    conn.commit()
+    conn.close()
+
+    return {
+        "id": task_id, "title": task_update.title, "completed": task_update.completed
+    }
 
 
 @app.delete("/tasks/{task_id}")
