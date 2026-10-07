@@ -59,7 +59,11 @@ async def get_task_by_id(task_id: int):
     conn.close()
 
     if row:
-        return {"id": row["id"], "title": row["title"], "completed": bool(row["completed"])}
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "completed": bool(row["completed"]),
+        }
 
     raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
@@ -80,22 +84,32 @@ async def update_task(task_id: int, task_update: TaskUpdate):
 
     if cursor.rowcount == 0:
         conn.close()
-        raise HTTPException(status_code=404, detail="Tarefa não encontrada") 
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
     conn.commit()
     conn.close()
 
     return {
-        "id": task_id, "title": task_update.title, "completed": task_update.completed
+        "id": task_id,
+        "title": task_update.title,
+        "completed": task_update.completed,
     }
 
 
 @app.delete("/tasks/{task_id}")
 async def delete_task(task_id: int):
-    for task in tasks:
-        if task_id == task["id"]:
-            tasks.remove(task)
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = ?",
+        (task_id,),
+    )
 
-            return {"message": f"Tarefa {task['id']} removida"}
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
-    raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    conn.commit()
+    conn.close()
+
+    return {"message": f'Tarefa {task_id} removida'}
