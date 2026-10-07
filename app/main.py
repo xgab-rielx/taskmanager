@@ -47,10 +47,19 @@ async def create_task(task: TaskCreate):
 
 
 @app.get("/tasks/{task_id}")
-async def get_task(task_id: int):
-    for task in tasks:
-        if task_id == task["id"]:
-            return task
+async def get_task_by_id(task_id: int):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT id, title, completed FROM tasks WHERE id = ?",
+        (task_id,),
+    )
+    row = cursor.fetchone()
+
+    conn.close()
+
+    if row:
+        return {"id": row["id"], "title": row["title"], "completed": bool(row["completed"])}
 
     raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
