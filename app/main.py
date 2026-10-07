@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.database import init_db, get_connection
+from datetime import datetime
 
 app = FastAPI()
 
@@ -17,7 +18,13 @@ async def get_tasks():
     rows = cursor.fetchall()
 
     tasks = [
-        {"id": row["id"], "title": row["title"], "completed": bool(row["completed"])}
+        {
+            "id": row["id"],
+            "title": row["title"],
+            "completed": bool(row["completed"]),
+            "priority": row["priority"],
+            "created_at": row["created_at"],
+        }
         for row in rows
     ]
 
@@ -29,21 +36,29 @@ async def get_tasks():
 class TaskCreate(BaseModel):
     title: str
     completed: bool = False
+    priority: str = "media"
 
 
 @app.post("/tasks")
 async def create_task(task: TaskCreate):
     conn = get_connection()
     cursor = conn.cursor()
+    created_at = datetime.now().isoformat()
     cursor.execute(
-        "INSERT INTO tasks (title, completed) VALUES (?, ?)",
-        (task.title, int(task.completed)),
+        "INSERT INTO tasks (title, completed, priority, created_at) VALUES (?, ?, ?, ?)",
+        (task.title, int(task.completed), task.priority, created_at),
     )
     conn.commit()
     task_id = cursor.lastrowid
     conn.close()
 
-    return {"id": task_id, "title": task.title, "completed": task.completed}
+    return {
+        "id": task_id,
+        "title": task.title,
+        "completed": task.completed,
+        "priority": task.priority,
+        "created_at": created_at,
+    }
 
 
 @app.get("/tasks/{task_id}")
@@ -51,7 +66,7 @@ async def get_task_by_id(task_id: int):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, title, completed FROM tasks WHERE id = ?",
+        "SELECT * FROM tasks WHERE id = ?",
         (task_id,),
     )
     row = cursor.fetchone()
@@ -63,6 +78,8 @@ async def get_task_by_id(task_id: int):
             "id": row["id"],
             "title": row["title"],
             "completed": bool(row["completed"]),
+            "priority": row["priority"],
+            "created_at": row["created_at"],
         }
 
     raise HTTPException(status_code=404, detail="Tarefa não encontrada")
@@ -71,6 +88,7 @@ async def get_task_by_id(task_id: int):
 class TaskUpdate(BaseModel):
     title: str
     completed: bool
+    priority: str
 
 
 @app.put("/tasks/{task_id}")
@@ -78,8 +96,8 @@ async def update_task(task_id: int, task_update: TaskUpdate):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE tasks SET title = ?, completed = ? WHERE id = ?",
-        (task_update.title, int(task_update.completed), task_id),
+        "UPDATE tasks SET title = ?, completed = ?, priority = ? WHERE id = ?",
+        (task_update.title, int(task_update.completed), task_update.priority, task_id),
     )
 
     if cursor.rowcount == 0:
@@ -93,6 +111,7 @@ async def update_task(task_id: int, task_update: TaskUpdate):
         "id": task_id,
         "title": task_update.title,
         "completed": task_update.completed,
+        "priority": task_update.priority
     }
 
 
@@ -112,4 +131,4 @@ async def delete_task(task_id: int):
     conn.commit()
     conn.close()
 
-    return {"message": f'Tarefa {task_id} removida'}
+    return {"message": f"Tarefa {task_id} removida"}
