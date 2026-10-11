@@ -45,3 +45,16 @@ def test_task_by_id(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Tarefa não encontrada"}
+
+
+def test_create_task_with_invalid_priority(client):
+    response = client.post(
+        "/tasks",
+        json={"title": "Tarefa com prioridade inválida", "priority": "urgente"},
+    )
+
+    assert response.status_code == 422
+
+    error = response.json()
+
+    assert "priority" in str(error)
