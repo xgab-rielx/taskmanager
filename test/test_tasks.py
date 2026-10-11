@@ -138,3 +138,9 @@ def test_dekete_task(client):
     assert get_response.status_code == 404
     assert get_response.json() == {"detail": "Tarefa não encontrada"}
 
+
+def test_delete_task_not_found(client):
+    response = client.delete("/tasks/999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tarefa não encontrada"}
