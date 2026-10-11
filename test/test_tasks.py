@@ -58,3 +58,27 @@ def test_create_task_with_invalid_priority(client):
     error = response.json()
 
     assert "priority" in str(error)
+
+
+def test_get_task_by_id(client):
+    create_response = client.post(
+        "/tasks",
+        json={"title": "Tarefa pra buscar por id", "priority": "alta"},
+    )
+
+    assert create_response.status_code == 200
+
+    created_task = create_response.json()
+    task_id = created_task["id"]
+
+    get_response = client.get(f"/tasks/{task_id}")
+
+    assert get_response.status_code == 200
+
+    task = get_response.json()
+
+    assert task["id"] == task_id
+    assert task["title"] == "Tarefa pra buscar por id"
+    assert task["priority"] == "alta"
+    assert task["completed"] is False
+    assert "created_at" in task
