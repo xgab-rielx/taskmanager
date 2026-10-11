@@ -107,3 +107,13 @@ def test_update_task(client):
     assert updated_task["title"] == "Tarefa atualizada"
     assert updated_task["completed"] is True
     assert updated_task["priority"] == "alta"
+
+
+def test_update_task_not_found(client):
+    response = client.put(
+        "/tasks/999",
+        json={"title": "Tarefa inexistente", "completed": "True", "priority": "alta"}
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tarefa não encontrada"}
