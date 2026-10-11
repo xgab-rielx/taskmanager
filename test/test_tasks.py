@@ -144,3 +144,17 @@ def test_delete_task_not_found(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Tarefa não encontrada"}
+
+
+def test_create_task_without_title(client):
+    response = client.post(
+        "/tasks",
+        json={
+            "priority": "alta"
+        }
+    )
+
+    assert response.status_code == 422
+
+    error = response.json()
+    assert "title" in str(error)
