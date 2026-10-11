@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app import database
 
+
 @pytest.fixture
 def client():
     database.DB_FILE = "test_tasks.db"
@@ -22,13 +23,10 @@ def test_get_task(client):
     assert response.status_code == 200
     assert response.json() == []
 
+
 def test_create_task(client):
     response = client.post(
-        "/tasks",
-        json={
-            "title": "Tarefa criada pelo teste",
-            "priority": "alta"
-        }
+        "/tasks", json={"title": "Tarefa criada pelo teste", "priority": "alta"}
     )
 
     assert response.status_code == 200
@@ -40,3 +38,10 @@ def test_create_task(client):
     assert task["completed"] is False
     assert task["priority"] == "alta"
     assert "created_at" in task
+
+
+def test_task_by_id(client):
+    response = client.get("/tasks/999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tarefa não encontrada"}
