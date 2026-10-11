@@ -82,3 +82,28 @@ def test_get_task_by_id(client):
     assert task["priority"] == "alta"
     assert task["completed"] is False
     assert "created_at" in task
+
+
+def test_update_task(client):
+    create_response = client.post(
+        "/tasks", json={"title": "Tarefa para atualizar", "priority": "baixa"}
+    )
+
+    assert create_response.status_code == 200
+
+    created_task = create_response.json()
+    task_id = created_task["id"]
+
+    update_response = client.put(
+        f"/tasks/{task_id}",
+        json={"title": "Tarefa atualizada", "completed": True, "priority": "alta"},
+    )
+
+    assert update_response.status_code == 200
+
+    updated_task = update_response.json()
+
+    assert updated_task["id"] == task_id
+    assert updated_task["title"] == "Tarefa atualizada"
+    assert updated_task["completed"] is True
+    assert updated_task["priority"] == "alta"
