@@ -112,8 +112,29 @@ def test_update_task(client):
 def test_update_task_not_found(client):
     response = client.put(
         "/tasks/999",
-        json={"title": "Tarefa inexistente", "completed": "True", "priority": "alta"}
+        json={"title": "Tarefa inexistente", "completed": "True", "priority": "alta"},
     )
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Tarefa não encontrada"}
+
+
+def test_dekete_task(client):
+    create_response = client.post(
+        "/tasks", json={"title": "Tarefa para deletar", "priority": "media"}
+    )
+
+    assert create_response.status_code == 200
+
+    created_task = create_response.json()
+    task_id = created_task["id"]
+
+    delete_response = client.delete(f"/tasks/{task_id}")
+
+    assert delete_response.status_code == 200
+
+    get_response = client.get(f"/tasks/{task_id}")
+
+    assert get_response.status_code == 404
+    assert get_response.json() == {"detail": "Tarefa não encontrada"}
+
