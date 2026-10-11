@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.database import init_db, get_connection
 from datetime import datetime
+from typing import Literal
 
 app = FastAPI()
 
@@ -9,12 +10,32 @@ init_db()
 
 tasks = [{"id": 1, "title": "Estudar FastAPI", "completed": False}]
 
+Priority = Literal["baixa", "media", "alta"]
+
 
 @app.get("/tasks")
-async def get_tasks():
+async def get_tasks(
+    completed: bool | None = None,
+    priority: Priority | None = None
+):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM tasks")
+
+    if completed is not None and priority is not None:
+        cursor.execute("SELECT * FROM tasks WHERE completed = ? AND priority = ?",
+                   (int(completed), priority),
+        )
+    elif completed is not None:
+        cursor.execute("SELECT * FROM tasks WHERE completed = ?",
+                       (int(completed),)
+        )
+    elif priority is not None:
+        cursor.execute("SELECT * FROM tasks WHERE priority = ?",
+                        (priority,)
+        )
+    else:
+        cursor.execute("SELECT * FROM tasks")
+        
     rows = cursor.fetchall()
 
     tasks = [
@@ -36,7 +57,7 @@ async def get_tasks():
 class TaskCreate(BaseModel):
     title: str
     completed: bool = False
-    priority: str = "media"
+    priority: Priority = "media"
 
 
 @app.post("/tasks")
@@ -88,7 +109,7 @@ async def get_task_by_id(task_id: int):
 class TaskUpdate(BaseModel):
     title: str
     completed: bool
-    priority: str
+    priority: Priority
 
 
 @app.put("/tasks/{task_id}")
