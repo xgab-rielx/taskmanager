@@ -17,7 +17,7 @@ def client():
         os.remove("test_tasks.db")
 
 
-def test_get_task(client):
+def test_get_tasks_empty_list(client):
     response = client.get("/tasks")
 
     assert response.status_code == 200
@@ -38,6 +38,21 @@ def test_create_task(client):
     assert task["completed"] is False
     assert task["priority"] == "alta"
     assert "created_at" in task
+
+
+def test_create_task_with_default_values(client):
+    response = client.post(
+        "/tasks",
+        json={"title": "Tarefa sem valores opcionais"},
+    )
+
+    assert response.status_code == 200
+
+    task = response.json()
+
+    assert task["title"] == "Tarefa sem valores opcionais"
+    assert task["completed"] is False
+    assert task["priority"] == "media"
 
 
 def test_create_task_with_invalid_priority(client):
@@ -121,7 +136,7 @@ def test_update_task(client):
 def test_update_task_not_found(client):
     response = client.put(
         "/tasks/999",
-        json={"title": "Tarefa inexistente", "completed": "True", "priority": "alta"},
+        json={"title": "Tarefa inexistente", "completed": True, "priority": "alta"},
     )
 
     assert response.status_code == 404
@@ -153,6 +168,7 @@ def test_delete_task_not_found(client):
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Tarefa não encontrada"}
+
 
 
 def test_update_task_with_invalid_priority(client):
@@ -233,3 +249,4 @@ def test_get_task_with_invalid_id(client):
     error = response.json()
 
     assert "task_id" in str(error)
+
