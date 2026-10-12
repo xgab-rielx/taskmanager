@@ -188,3 +188,38 @@ def test_update_task_with_invalid_priority(client):
     assert task["title"] == "Tarefa original"
     assert task["priority"] == "baixa"
     assert task["completed"] is False
+
+
+def test_get_tasks_returns_created_tasks(client):
+    first_response = client.post(
+        "/tasks",
+        json={
+            "title": "Estudar Docker",
+            "priority": "alta"
+        }
+    )
+
+    second_response = client.post(
+        "/tasks",
+        json={
+            "title": "Praticar FastAPI",
+            "priority": "media"
+        }
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+
+    response = client.get("/tasks")
+
+    assert response.status_code == 200
+
+    tasks = response.json()
+
+    assert len(tasks) == 2
+
+    assert tasks[0]["title"] == "Estudar Docker"
+    assert tasks[0]["priority"] == "alta"
+
+    assert tasks[1]["title"] == "Praticar FastAPI"
+    assert tasks[1]["priority"] == "media"
