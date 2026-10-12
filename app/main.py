@@ -1,14 +1,13 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 from app.database import init_db, get_connection
 from datetime import datetime
 from typing import Literal
 
+from app.schemas import TaskCreate, TaskUpdate, TaskUpdateStatus
+
 app = FastAPI()
 
 init_db()
-
-tasks = [{"id": 1, "title": "Estudar FastAPI", "completed": False}]
 
 Priority = Literal["baixa", "media", "alta"]
 
@@ -52,12 +51,6 @@ async def get_tasks(
     conn.close()
 
     return tasks
-
-
-class TaskCreate(BaseModel):
-    title: str
-    completed: bool = False
-    priority: Priority = "media"
 
 
 @app.post("/tasks")
@@ -106,12 +99,6 @@ async def get_task_by_id(task_id: int):
     raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
 
-class TaskUpdate(BaseModel):
-    title: str
-    completed: bool
-    priority: Priority
-
-
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: int, task_update: TaskUpdate):
     conn = get_connection()
@@ -135,9 +122,6 @@ async def update_task(task_id: int, task_update: TaskUpdate):
         "priority": task_update.priority
     }
 
-
-class TaskUpdateStatus(BaseModel):
-    completed: bool
 
 @app.patch("/tasks/{task_id}/status")
 async def update_status(task_id: int, update_completed: TaskUpdateStatus):
