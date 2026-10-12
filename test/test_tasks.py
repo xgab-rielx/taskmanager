@@ -223,3 +223,13 @@ def test_get_tasks_returns_created_tasks(client):
 
     assert tasks[1]["title"] == "Praticar FastAPI"
     assert tasks[1]["priority"] == "media"
+
+
+def test_get_task_with_invalid_id(client):
+    response = client.get("/tasks/abc")
+
+    assert response.status_code == 422
+
+    error = response.json()
+
+    assert "task_id" in str(error)
