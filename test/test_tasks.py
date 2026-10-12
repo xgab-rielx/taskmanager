@@ -170,14 +170,9 @@ def test_delete_task_not_found(client):
     assert response.json() == {"detail": "Tarefa não encontrada"}
 
 
-
 def test_update_task_with_invalid_priority(client):
     create_response = client.post(
-        "/tasks",
-        json={
-            "title": "Tarefa original",
-            "priority": "baixa"
-        }
+        "/tasks", json={"title": "Tarefa original", "priority": "baixa"}
     )
 
     assert create_response.status_code == 200
@@ -189,8 +184,8 @@ def test_update_task_with_invalid_priority(client):
         json={
             "title": "Título que não deve ser salvo",
             "completed": True,
-            "priority": "urgente"
-        }
+            "priority": "urgente",
+        },
     )
 
     assert update_response.status_code == 422
@@ -208,19 +203,11 @@ def test_update_task_with_invalid_priority(client):
 
 def test_get_tasks_returns_created_tasks(client):
     first_response = client.post(
-        "/tasks",
-        json={
-            "title": "Estudar Docker",
-            "priority": "alta"
-        }
+        "/tasks", json={"title": "Estudar Docker", "priority": "alta"}
     )
 
     second_response = client.post(
-        "/tasks",
-        json={
-            "title": "Praticar FastAPI",
-            "priority": "media"
-        }
+        "/tasks", json={"title": "Praticar FastAPI", "priority": "media"}
     )
 
     assert first_response.status_code == 200
@@ -250,3 +237,72 @@ def test_get_task_with_invalid_id(client):
 
     assert "task_id" in str(error)
 
+
+def test_update_task_to_completed(client):
+    create_response = client.post(
+        "/tasks", json={"title": "Concluir testes do PATCH", "priority": "alta"}
+    )
+
+    assert create_response.status_code == 200
+
+    task_id = create_response.json()["id"]
+
+    patch_response = client.patch(
+        f"/tasks/{task_id}/status", json={"completed": True},
+    )
+
+    assert patch_response.status_code == 200
+
+    assert patch_response.json()["id"] == task_id
+
+    assert  patch_response.json()["completed"] is True
+
+    response = client.get(f"/tasks/{task_id}")
+
+    assert response.status_code == 200
+
+    task = response.json()
+
+    assert task["title"] == "Concluir testes do PATCH"
+    assert task["priority"] == "alta"
+    assert task["completed"] is True
+
+
+def test_update_task_status_to_pending(client):
+    create_response = client.post(
+        "/tasks", json={"title": "Mudar para pendente", "priority": "alta"}
+    )
+
+    assert create_response.status_code == 200
+
+    task_id = create_response.json()["id"]
+
+    patch_response1 = client.patch(
+        f"/tasks/{task_id}/status", json={"completed": True}
+    )
+
+    assert patch_response1.status_code == 200
+    assert patch_response1.json()["completed"] is True
+    
+    patch_response2 = client.patch(
+        f"/tasks/{task_id}/status", json={"completed": False}
+    )
+
+    assert patch_response2.status_code == 200
+    assert patch_response2.json()["completed"] is False
+
+    response = client.get(f"/tasks/{task_id}")
+    
+    assert response.status_code == 200
+    
+    task = response.json()
+    assert task["completed"] is False
+
+
+def test_update_task_status_not_found(client):
+    patch_response = client.patch(
+        "/tasks/999/status", json={"completed": True}
+    )
+
+    assert patch_response.status_code == 404
+    assert patch_response.json() == {"detail": "Tarefa não encontrada"}

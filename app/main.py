@@ -136,6 +136,32 @@ async def update_task(task_id: int, task_update: TaskUpdate):
     }
 
 
+class TaskUpdateStatus(BaseModel):
+    completed: bool
+
+@app.patch("/tasks/{task_id}/status")
+async def update_status(task_id: int, update_completed: TaskUpdateStatus):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE tasks SET completed = ? WHERE id = ?",
+        (int(update_completed.completed), task_id),
+    )
+
+    if cursor.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "message": "Status da tarefa atualizado com sucesso",
+        "id": task_id,
+        "completed": update_completed.completed,
+    }
+
+
 @app.delete("/tasks/{task_id}")
 async def delete_task(task_id: int):
     conn = get_connection()
