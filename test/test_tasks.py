@@ -40,13 +40,6 @@ def test_create_task(client):
     assert "created_at" in task
 
 
-def test_task_by_id(client):
-    response = client.get("/tasks/999")
-
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Tarefa não encontrada"}
-
-
 def test_create_task_with_invalid_priority(client):
     response = client.post(
         "/tasks",
@@ -58,6 +51,22 @@ def test_create_task_with_invalid_priority(client):
     error = response.json()
 
     assert "priority" in str(error)
+
+
+def test_create_task_without_title(client):
+    response = client.post("/tasks", json={"priority": "alta"})
+
+    assert response.status_code == 422
+
+    error = response.json()
+    assert "title" in str(error)
+
+
+def test_task_by_id(client):
+    response = client.get("/tasks/999")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tarefa não encontrada"}
 
 
 def test_get_task_by_id(client):
@@ -119,7 +128,7 @@ def test_update_task_not_found(client):
     assert response.json() == {"detail": "Tarefa não encontrada"}
 
 
-def test_dekete_task(client):
+def test_delete_task(client):
     create_response = client.post(
         "/tasks", json={"title": "Tarefa para deletar", "priority": "media"}
     )
@@ -146,15 +155,36 @@ def test_delete_task_not_found(client):
     assert response.json() == {"detail": "Tarefa não encontrada"}
 
 
-def test_create_task_without_title(client):
-    response = client.post(
+def test_update_task_with_invalid_priority(client):
+    create_response = client.post(
         "/tasks",
         json={
-            "priority": "alta"
+            "title": "Tarefa original",
+            "priority": "baixa"
         }
     )
 
-    assert response.status_code == 422
+    assert create_response.status_code == 200
 
-    error = response.json()
-    assert "title" in str(error)
+    task_id = create_response.json()["id"]
+
+    update_response = client.put(
+        f"/tasks/{task_id}",
+        json={
+            "title": "Título que não deve ser salvo",
+            "completed": True,
+            "priority": "urgente"
+        }
+    )
+
+    assert update_response.status_code == 422
+
+    get_response = client.get(f"/tasks/{task_id}")
+
+    assert get_response.status_code == 200
+
+    task = get_response.json()
+
+    assert task["title"] == "Tarefa original"
+    assert task["priority"] == "baixa"
+    assert task["completed"] is False
