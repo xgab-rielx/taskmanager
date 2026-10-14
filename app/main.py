@@ -1,41 +1,26 @@
+from app.crud import (
+    get_tasks as get_tasks_from_db,
+    get_task_by_id as get_task_by_id_from_db,
+    create_task as create_task_from_db,
+    update_task as update_task_from_db,
+    update_task_status,
+    delete_task as delete_task_from_db
+)
 from fastapi import FastAPI, HTTPException
-from app.database import init_db, get_connection
+from app.database import init_db
 from datetime import datetime
-from typing import Literal
 
-from app.schemas import TaskCreate, TaskUpdate, TaskUpdateStatus
+from app.schemas import TaskCreate, TaskUpdate, TaskUpdateStatus, Priority
 
 app = FastAPI()
 
 init_db()
 
-Priority = Literal["baixa", "media", "alta"]
-
 
 @app.get("/tasks")
-async def get_tasks(
-    completed: bool | None = None,
-    priority: Priority | None = None
-):
-    conn = get_connection()
-    cursor = conn.cursor()
+async def get_tasks(completed: bool | None = None, priority: Priority | None = None):
 
-    if completed is not None and priority is not None:
-        cursor.execute("SELECT * FROM tasks WHERE completed = ? AND priority = ?",
-                   (int(completed), priority),
-        )
-    elif completed is not None:
-        cursor.execute("SELECT * FROM tasks WHERE completed = ?",
-                       (int(completed),)
-        )
-    elif priority is not None:
-        cursor.execute("SELECT * FROM tasks WHERE priority = ?",
-                        (priority,)
-        )
-    else:
-        cursor.execute("SELECT * FROM tasks")
-        
-    rows = cursor.fetchall()
+    rows = get_tasks_from_db(completed=completed, priority=priority)
 
     tasks = [
         {
@@ -48,23 +33,18 @@ async def get_tasks(
         for row in rows
     ]
 
-    conn.close()
-
     return tasks
 
 
 @app.post("/tasks")
 async def create_task(task: TaskCreate):
-    conn = get_connection()
-    cursor = conn.cursor()
     created_at = datetime.now().isoformat()
-    cursor.execute(
-        "INSERT INTO tasks (title, completed, priority, created_at) VALUES (?, ?, ?, ?)",
-        (task.title, int(task.completed), task.priority, created_at),
+    task_id = create_task_from_db(
+        title=task.title,
+        completed=task.completed,
+        priority=task.priority,
+        created_at=created_at,
     )
-    conn.commit()
-    task_id = cursor.lastrowid
-    conn.close()
 
     return {
         "id": task_id,
@@ -77,15 +57,8 @@ async def create_task(task: TaskCreate):
 
 @app.get("/tasks/{task_id}")
 async def get_task_by_id(task_id: int):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (task_id,),
-    )
-    row = cursor.fetchone()
 
-    conn.close()
+    row = get_task_by_id_from_db(task_id)
 
     if row:
         return {
@@ -101,43 +74,35 @@ async def get_task_by_id(task_id: int):
 
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: int, task_update: TaskUpdate):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE tasks SET title = ?, completed = ?, priority = ? WHERE id = ?",
-        (task_update.title, int(task_update.completed), task_update.priority, task_id),
+
+    rows_affected = update_task_from_db(
+        task_id=task_id,
+        title=task_update.title,
+        completed=task_update.completed,
+        priority=task_update.priority,
     )
-
-    if cursor.rowcount == 0:
-        conn.close()
+    
+    if rows_affected == 0:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-
-    conn.commit()
-    conn.close()
 
     return {
         "id": task_id,
         "title": task_update.title,
         "completed": task_update.completed,
-        "priority": task_update.priority
+        "priority": task_update.priority,
     }
 
 
 @app.patch("/tasks/{task_id}/status")
 async def update_status(task_id: int, update_completed: TaskUpdateStatus):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "UPDATE tasks SET completed = ? WHERE id = ?",
-        (int(update_completed.completed), task_id),
+
+    rows_affected = update_task_status(
+        task_id=task_id,
+        completed=update_completed.completed
     )
 
-    if cursor.rowcount == 0:
-        conn.close()
+    if rows_affected == 0:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-
-    conn.commit()
-    conn.close()
 
     return {
         "message": "Status da tarefa atualizado com sucesso",
@@ -148,18 +113,12 @@ async def update_status(task_id: int, update_completed: TaskUpdateStatus):
 
 @app.delete("/tasks/{task_id}")
 async def delete_task(task_id: int):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        "DELETE FROM tasks WHERE id = ?",
-        (task_id,),
+
+    rows_effected = delete_task_from_db(
+        task_id=task_id
     )
 
-    if cursor.rowcount == 0:
-        conn.close()
+    if rows_effected == 0:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
-
-    conn.commit()
-    conn.close()
 
     return {"message": f"Tarefa {task_id} removida"}
