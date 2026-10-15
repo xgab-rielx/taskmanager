@@ -1,6 +1,6 @@
 from app.db_session import SessionLocal
 from app.models import Task
-
+from sqlalchemy import select
 
 def create_task(
         title: str,
@@ -38,3 +38,20 @@ def get_task_by_id(task_id: int) -> dict | None:
             "priority": task.priority,
             "created_at": task.created_at
         }
+
+
+def get_tasks(
+        completed: bool | None = None,
+        priority: str | None = None,
+    ):
+
+    with SessionLocal() as session:
+        stmt = select(Task)
+
+        if completed is not None:
+            stmt = stmt.where(Task.completed == completed)
+
+        if priority is not None:
+            stmt = stmt.where(Task.priority == priority)
+
+        return session.scalars(stmt).all()
