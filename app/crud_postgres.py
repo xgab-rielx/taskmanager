@@ -55,3 +55,27 @@ def get_tasks(
             stmt = stmt.where(Task.priority == priority)
 
         return session.scalars(stmt).all()
+
+
+def update_task(
+        task_id: int,
+        title: str | None = None,
+        completed: bool | None = None,
+        priority: str | None = None
+) -> int:
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+
+        if task is None:
+            return 0
+
+        if title is not None:
+            task.title = title
+        
+        if completed is not None:
+            task.completed = completed
+        
+        if priority is not None:
+            task.priority = priority
+
+    return 1
