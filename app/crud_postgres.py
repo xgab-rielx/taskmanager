@@ -81,6 +81,21 @@ def update_task(
     return 1
 
 
+def update_task_status(
+        task_id: int,
+        completed: bool
+) -> int:
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+
+        if task is None:
+            return 0 
+
+        task.completed = completed
+
+    return 1 
+
+
 def delete_task(task_id: int) -> int:
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
