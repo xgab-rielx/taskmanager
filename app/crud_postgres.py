@@ -79,3 +79,15 @@ def update_task(
             task.priority = priority
 
     return 1
+
+
+def delete_task(task_id: int) -> int:
+    with SessionLocal.begin() as session:
+        task = session.get(Task, task_id)
+
+        if task is None:
+            return 0
+
+        session.delete(task)
+
+    return 1
