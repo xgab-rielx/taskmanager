@@ -7,7 +7,7 @@ def create_task(
         completed: bool,
         priority: str,
         created_at: str,
-) -> int:
+) -> dict:
     with SessionLocal.begin() as session:
         task = Task(
             title=title,
@@ -19,9 +19,15 @@ def create_task(
         session.add(task)
         session.flush()
 
-        task_id = task.id
+        created_task = {
+            "id": task.id,
+            "title": task.title,
+            "completed": task.completed,
+            "priority": task.priority,
+            "created_at": task.created_at
+        }
 
-    return task_id
+    return created_task
 
 
 def get_task_by_id(task_id: int) -> dict | None:
@@ -54,20 +60,30 @@ def get_tasks(
         if priority is not None:
             stmt = stmt.where(Task.priority == priority)
 
-        return session.scalars(stmt).all()
+        tasks = session.scalars(stmt).all()
 
+        return [
+            {
+                "id": task.id,
+                "title": task.title,
+                "completed": task.completed,
+                "priority": task.priority,
+                "created_at": task.created_at
+            }
+            for task in tasks
+        ]
 
 def update_task(
         task_id: int,
         title: str | None = None,
         completed: bool | None = None,
         priority: str | None = None
-) -> int:
+) -> dict:
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
 
         if task is None:
-            return 0
+            return None
 
         if title is not None:
             task.title = title
@@ -78,31 +94,46 @@ def update_task(
         if priority is not None:
             task.priority = priority
 
-    return 1
+        updated_task = {
+            "id": task.id,
+            "title": task.title,
+            "completed": task.completed,
+            "priority": task.priority,
+            "created_at": task.created_at
+        }
 
+    return updated_task
 
 def update_task_status(
         task_id: int,
         completed: bool
-) -> int:
+) -> dict:
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
 
         if task is None:
-            return 0 
+            return None 
 
         task.completed = completed
 
-    return 1 
+        updated_task = {
+            "id": task_id,
+            "title": task.title,
+            "completed": task.completed,
+            "priority": task.priority,
+            "created_at": task.created_at
+        }
+
+    return updated_task
 
 
-def delete_task(task_id: int) -> int:
+def delete_task(task_id: int) -> dict | None:
     with SessionLocal.begin() as session:
         task = session.get(Task, task_id)
 
         if task is None:
-            return 0
+            return None
 
         session.delete(task)
 
-    return 1
+    return {"message": f"Tarefa {task_id} removida"}

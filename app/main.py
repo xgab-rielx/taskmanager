@@ -20,105 +20,72 @@ init_db()
 @app.post("/tasks")
 async def create_task(task: TaskCreate):
     created_at = datetime.now().isoformat()
-    task_id = create_task_from_db(
+
+    return create_task_from_db(
         title=task.title,
         completed=task.completed,
         priority=task.priority,
         created_at=created_at,
     )
 
-    return {
-        "id": task_id,
-        "title": task.title,
-        "completed": task.completed,
-        "priority": task.priority,
-        "created_at": created_at,
-    }
-
 
 
 @app.get("/tasks")
 async def get_tasks(completed: bool | None = None, priority: Priority | None = None):
 
-    rows = get_tasks_from_db(completed=completed, priority=priority)
+    return get_tasks_from_db(completed=completed, priority=priority,)
 
-    tasks = [
-        {
-           "id": row.id,
-            "title": row.title,
-            "completed": row.completed,
-            "priority": row.priority,
-            "created_at": row.created_at,
-        }
-        for row in rows
-    ]
-
-    return tasks
 
 @app.get("/tasks/{task_id}")
 async def get_task_by_id(task_id: int):
 
-    row = get_task_by_id_from_db(task_id)
+    task = get_task_by_id_from_db(task_id)
 
-    if row:
-        return {
-            "id": row["id"],
-            "title": row["title"],
-            "completed": bool(row["completed"]),
-            "priority": row["priority"],
-            "created_at": row["created_at"],
-        }
+    if task is None:
+        raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
-    raise HTTPException(status_code=404, detail="Tarefa não encontrada")
+    return task
+        
 
 
 @app.put("/tasks/{task_id}")
 async def update_task(task_id: int, task_update: TaskUpdate):
 
-    rows_affected = update_task_from_db(
+    updated_task = update_task_from_db(
         task_id=task_id,
         title=task_update.title,
         completed=task_update.completed,
         priority=task_update.priority,
     )
     
-    if rows_affected == 0:
+    if updated_task is None:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
-    return {
-        "id": task_id,
-        "title": task_update.title,
-        "completed": task_update.completed,
-        "priority": task_update.priority,
-    }
+    return updated_task
 
 
 @app.patch("/tasks/{task_id}/status")
 async def update_status(task_id: int, update_completed: TaskUpdateStatus):
 
-    rows_affected = update_task_status_from_db(
+    updated_task = update_task_status_from_db(
         task_id=task_id,
         completed=update_completed.completed
     )
 
-    if rows_affected == 0:
+    if updated_task is None:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
-    return {
-        "message": "Status da tarefa atualizado com sucesso",
-        "id": task_id,
-        "completed": update_completed.completed,
-    }
+    return updated_task
 
 
 @app.delete("/tasks/{task_id}")
 async def delete_task(task_id: int):
 
-    rows_effected = delete_task_from_db(
+    deleted_task = delete_task_from_db(
         task_id=task_id
     )
 
-    if rows_effected == 0:
+    if deleted_task is None:
         raise HTTPException(status_code=404, detail="Tarefa não encontrada")
 
-    return {"message": f"Tarefa {task_id} removida"}
+    return deleted_task
