@@ -1,9 +1,9 @@
 from app.crud_postgres import (
     get_tasks as get_tasks_from_db,
     create_task as create_task_from_db,
+    get_task_by_id as get_task_by_id_from_db,
 )
 from app.crud import (
-    get_task_by_id as get_task_by_id_from_db,
     update_task as update_task_from_db,
     update_task_status,
     delete_task as delete_task_from_db
@@ -17,25 +17,6 @@ from app.schemas import TaskCreate, TaskUpdate, TaskUpdateStatus, Priority
 app = FastAPI()
 
 init_db()
-
-
-@app.get("/tasks")
-async def get_tasks(completed: bool | None = None, priority: Priority | None = None):
-
-    rows = get_tasks_from_db(completed=completed, priority=priority)
-
-    tasks = [
-        {
-           "id": row.id,
-            "title": row.title,
-            "completed": row.completed,
-            "priority": row.priority,
-            "created_at": row.created_at,
-        }
-        for row in rows
-    ]
-
-    return tasks
 
 
 @app.post("/tasks")
@@ -56,6 +37,25 @@ async def create_task(task: TaskCreate):
         "created_at": created_at,
     }
 
+
+
+@app.get("/tasks")
+async def get_tasks(completed: bool | None = None, priority: Priority | None = None):
+
+    rows = get_tasks_from_db(completed=completed, priority=priority)
+
+    tasks = [
+        {
+           "id": row.id,
+            "title": row.title,
+            "completed": row.completed,
+            "priority": row.priority,
+            "created_at": row.created_at,
+        }
+        for row in rows
+    ]
+
+    return tasks
 
 @app.get("/tasks/{task_id}")
 async def get_task_by_id(task_id: int):
