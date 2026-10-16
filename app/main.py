@@ -3,9 +3,9 @@ from app.crud_postgres import (
     create_task as create_task_from_db,
     get_task_by_id as get_task_by_id_from_db,
     update_task as update_task_from_db,
+    update_task_status as update_task_status_from_db,
 )
 from app.crud import (
-    update_task_status,
     delete_task as delete_task_from_db
 )
 from fastapi import FastAPI, HTTPException
@@ -98,7 +98,7 @@ async def update_task(task_id: int, task_update: TaskUpdate):
 @app.patch("/tasks/{task_id}/status")
 async def update_status(task_id: int, update_completed: TaskUpdateStatus):
 
-    rows_affected = update_task_status(
+    rows_affected = update_task_status_from_db(
         task_id=task_id,
         completed=update_completed.completed
     )
