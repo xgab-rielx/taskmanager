@@ -1,5 +1,5 @@
+from app.crud_postgres import get_tasks as get_tasks_from_db
 from app.crud import (
-    get_tasks as get_tasks_from_db,
     get_task_by_id as get_task_by_id_from_db,
     create_task as create_task_from_db,
     update_task as update_task_from_db,
@@ -24,11 +24,11 @@ async def get_tasks(completed: bool | None = None, priority: Priority | None = N
 
     tasks = [
         {
-            "id": row["id"],
-            "title": row["title"],
-            "completed": bool(row["completed"]),
-            "priority": row["priority"],
-            "created_at": row["created_at"],
+           "id": row.id,
+            "title": row.title,
+            "completed": row.completed,
+            "priority": row.priority,
+            "created_at": row.created_at,
         }
         for row in rows
     ]
