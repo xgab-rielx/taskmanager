@@ -1,7 +1,9 @@
-from app.crud_postgres import get_tasks as get_tasks_from_db
+from app.crud_postgres import (
+    get_tasks as get_tasks_from_db,
+    create_task as create_task_from_db,
+)
 from app.crud import (
     get_task_by_id as get_task_by_id_from_db,
-    create_task as create_task_from_db,
     update_task as update_task_from_db,
     update_task_status,
     delete_task as delete_task_from_db
