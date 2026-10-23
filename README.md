@@ -1,6 +1,6 @@
-Claro, Bigode! Pode substituir o conteúdo do seu `README.md` pelo modelo abaixo. Os nomes de usuário e senhas são **exemplos**: cada pessoa deve ajustar os arquivos `.env` e `.env.test` no próprio ambiente.
 
-````markdown
+
+
 # TaskManager API
 
 API REST para gerenciamento de tarefas, desenvolvida com FastAPI, PostgreSQL e SQLAlchemy.
@@ -47,7 +47,7 @@ Os comandos de ativação do ambiente virtual abaixo usam Windows PowerShell.
 ### 1. Clonar o repositório
 
 ```powershell
-git clone https://github.com/xgab-rielx/taskmanager.git(https://github.com/xgab-rielx/taskmanager.git)
+git clone https://github.com/xgab-rielx/taskmanager.git
 cd taskmanager
 ```
 
@@ -374,4 +374,3 @@ Os arquivos `.env` e `.env.test` devem ser criados localmente e não devem ser p
 - A inicialização da API não cria automaticamente as tabelas do PostgreSQL.
 - Execute os comandos a partir da raiz do projeto.
 - O projeto foi desenvolvido para estudos e evolução prática de uma API REST.
-````
