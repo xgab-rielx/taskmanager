@@ -1,21 +1,4 @@
-import os
-import pytest
-from fastapi.testclient import TestClient
-from app.main import app
-from app import database
-
-
-@pytest.fixture
-def client():
-    database.DB_FILE = "test_tasks.db"
-    database.init_db()
-
-    with TestClient(app) as test_client:
-        yield test_client
-
-    if os.path.exists("test_tasks.db"):
-        os.remove("test_tasks.db")
-
+# -------------- GET -------------
 
 def test_get_tasks_empty_list(client):
     response = client.get("/tasks")
@@ -24,285 +7,559 @@ def test_get_tasks_empty_list(client):
     assert response.json() == []
 
 
-def test_create_task(client):
-    response = client.post(
-        "/tasks", json={"title": "Tarefa criada pelo teste", "priority": "alta"}
-    )
+def test_get_tasks_with_one_task(client):
+    payload = {
+        "title": "testando",
+        "completed": False,
+        "priority": "media"
+    }
 
-    assert response.status_code == 200
+    created_response = client.post("/tasks", json=payload)
 
-    task = response.json()
+    assert created_response.status_code == 200
 
-    assert task["id"] == 1
-    assert task["title"] == "Tarefa criada pelo teste"
-    assert task["completed"] is False
-    assert task["priority"] == "alta"
-    assert "created_at" in task
-
-
-def test_create_task_with_default_values(client):
-    response = client.post(
-        "/tasks",
-        json={"title": "Tarefa sem valores opcionais"},
-    )
-
-    assert response.status_code == 200
-
-    task = response.json()
-
-    assert task["title"] == "Tarefa sem valores opcionais"
-    assert task["completed"] is False
-    assert task["priority"] == "media"
-
-
-def test_create_task_with_invalid_priority(client):
-    response = client.post(
-        "/tasks",
-        json={"title": "Tarefa com prioridade inválida", "priority": "urgente"},
-    )
-
-    assert response.status_code == 422
-
-    error = response.json()
-
-    assert "priority" in str(error)
-
-
-def test_create_task_without_title(client):
-    response = client.post("/tasks", json={"priority": "alta"})
-
-    assert response.status_code == 422
-
-    error = response.json()
-    assert "title" in str(error)
-
-
-def test_task_by_id(client):
-    response = client.get("/tasks/999")
-
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Tarefa não encontrada"}
-
-
-def test_get_task_by_id(client):
-    create_response = client.post(
-        "/tasks",
-        json={"title": "Tarefa pra buscar por id", "priority": "alta"},
-    )
-
-    assert create_response.status_code == 200
-
-    created_task = create_response.json()
-    task_id = created_task["id"]
-
-    get_response = client.get(f"/tasks/{task_id}")
-
-    assert get_response.status_code == 200
-
-    task = get_response.json()
-
-    assert task["id"] == task_id
-    assert task["title"] == "Tarefa pra buscar por id"
-    assert task["priority"] == "alta"
-    assert task["completed"] is False
-    assert "created_at" in task
-
-
-def test_update_task(client):
-    create_response = client.post(
-        "/tasks", json={"title": "Tarefa para atualizar", "priority": "baixa"}
-    )
-
-    assert create_response.status_code == 200
-
-    created_task = create_response.json()
-    task_id = created_task["id"]
-
-    update_response = client.put(
-        f"/tasks/{task_id}",
-        json={"title": "Tarefa atualizada", "completed": True, "priority": "alta"},
-    )
-
-    assert update_response.status_code == 200
-
-    updated_task = update_response.json()
-
-    assert updated_task["id"] == task_id
-    assert updated_task["title"] == "Tarefa atualizada"
-    assert updated_task["completed"] is True
-    assert updated_task["priority"] == "alta"
-
-
-def test_update_task_not_found(client):
-    response = client.put(
-        "/tasks/999",
-        json={"title": "Tarefa inexistente", "completed": True, "priority": "alta"},
-    )
-
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Tarefa não encontrada"}
-
-
-def test_delete_task(client):
-    create_response = client.post(
-        "/tasks", json={"title": "Tarefa para deletar", "priority": "media"}
-    )
-
-    assert create_response.status_code == 200
-
-    created_task = create_response.json()
-    task_id = created_task["id"]
-
-    delete_response = client.delete(f"/tasks/{task_id}")
-
-    assert delete_response.status_code == 200
-
-    get_response = client.get(f"/tasks/{task_id}")
-
-    assert get_response.status_code == 404
-    assert get_response.json() == {"detail": "Tarefa não encontrada"}
-
-
-def test_delete_task_not_found(client):
-    response = client.delete("/tasks/999")
-
-    assert response.status_code == 404
-    assert response.json() == {"detail": "Tarefa não encontrada"}
-
-
-def test_update_task_with_invalid_priority(client):
-    create_response = client.post(
-        "/tasks", json={"title": "Tarefa original", "priority": "baixa"}
-    )
-
-    assert create_response.status_code == 200
-
-    task_id = create_response.json()["id"]
-
-    update_response = client.put(
-        f"/tasks/{task_id}",
-        json={
-            "title": "Título que não deve ser salvo",
-            "completed": True,
-            "priority": "urgente",
-        },
-    )
-
-    assert update_response.status_code == 422
-
-    get_response = client.get(f"/tasks/{task_id}")
-
-    assert get_response.status_code == 200
-
-    task = get_response.json()
-
-    assert task["title"] == "Tarefa original"
-    assert task["priority"] == "baixa"
-    assert task["completed"] is False
-
-
-def test_get_tasks_returns_created_tasks(client):
-    first_response = client.post(
-        "/tasks", json={"title": "Estudar Docker", "priority": "alta"}
-    )
-
-    second_response = client.post(
-        "/tasks", json={"title": "Praticar FastAPI", "priority": "media"}
-    )
-
-    assert first_response.status_code == 200
-    assert second_response.status_code == 200
+    created_task = created_response.json()
 
     response = client.get("/tasks")
 
     assert response.status_code == 200
 
-    tasks = response.json()
+    data = response.json()
 
-    assert len(tasks) == 2
-
-    assert tasks[0]["title"] == "Estudar Docker"
-    assert tasks[0]["priority"] == "alta"
-
-    assert tasks[1]["title"] == "Praticar FastAPI"
-    assert tasks[1]["priority"] == "media"
+    assert len(data) == 1
+    assert data[0]["id"] == created_task["id"]
+    assert data[0]["title"] == payload["title"]
+    assert data[0]["completed"] is False
+    assert data[0]["priority"] == payload["priority"]
 
 
-def test_get_task_with_invalid_id(client):
+def test_get_tasks_with_two_tasks(client):
+    payload_1 = {
+            "title": "testando",
+            "completed": False,
+            "priority": "media"
+        }
+    created_response_1 = client.post("/tasks", json=payload_1)
+    assert created_response_1.status_code == 200
+    created_task_1 = created_response_1.json()
+
+    payload_2 = {
+                "title": "testando denovo",
+                "completed": False,
+                "priority": "media"
+            }
+    created_response_2 = client.post("/tasks", json=payload_2)
+    assert created_response_2.status_code == 200
+    created_task_2 = created_response_2.json()
+
+    response = client.get("/tasks")
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 2
+
+    returned_ids = {task["id"] for task in data}
+    expected_ids = {created_task_1["id"], created_task_2["id"]}
+
+    assert returned_ids == expected_ids
+
+
+def test_get_tasks_filter_completed_true(client):
+    payload_1 = {
+            "title": "Tarefa concluida",
+            "completed": True,
+            "priority": "media"
+        }
+    created_response_1 = client.post("/tasks", json=payload_1)
+    assert created_response_1.status_code == 200
+    completed_task = created_response_1.json()
+
+    payload_2 = {
+                "title": "Tarefa pendente",
+                "completed": False,
+                "priority": "media"
+            }
+    created_response_2 = client.post("/tasks", json=payload_2)
+    assert created_response_2.status_code == 200
+
+    response = client.get("/tasks", params={"completed": "true"})
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["id"] == completed_task["id"]
+    assert data[0]["completed"] is True
+
+
+def test_get_tasks_filter_completed_false(client):
+    payload_1 = {
+            "title": "Tarefa concluida",
+            "completed": True,
+            "priority": "media"
+        }
+    created_response_1 = client.post("/tasks", json=payload_1)
+    assert created_response_1.status_code == 200
+    
+
+    payload_2 = {
+                "title": "Tarefa pendente",
+                "completed": False,
+                "priority": "media"
+            }
+    created_response_2 = client.post("/tasks", json=payload_2)
+    assert created_response_2.status_code == 200
+    pending_task = created_response_2.json()
+
+    response = client.get("/tasks", params={"completed": "false"})
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["id"] == pending_task["id"]
+    assert data[0]["completed"] is False
+
+
+def test_get_tasks_filter_priority(client):
+    create_1 = client.post("/tasks", json={
+        "title": "Tarefa baixa",
+        "completed": False,
+        "priority": "baixa"
+    })
+    assert create_1.status_code == 200
+
+    create_2 = client.post("/tasks", json={
+        "title": "Tarefa media",
+        "completed": False,
+        "priority": "media"
+    })
+    assert create_2.status_code == 200
+
+    create_3 = client.post("/tasks", json={
+        "title": "Tarefa alta",
+        "completed": False,
+        "priority": "alta"
+    })
+    assert create_3.status_code == 200
+    high_priority_task = create_3.json()
+
+    response = client.get("/tasks", params={"priority": "alta"})
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["id"] == high_priority_task["id"]
+    assert data[0]["priority"] == "alta"
+
+
+def test_get_tasks_filter_completed_and_priority(client):
+    create_1 = client.post("/tasks", json={
+        "title": "Concluida alta",
+        "completed": True,
+        "priority": "alta"
+    })
+    assert create_1.status_code == 200
+    expected_task = create_1.json()
+
+    create_2 = client.post("/tasks", json={
+        "title": "Concluida baixa",
+        "completed": True,
+        "priority": "baixa"
+    })
+    assert create_2.status_code == 200
+
+    create_3 = client.post("/tasks", json={
+        "title": "Pendente alta",
+        "completed": False,
+        "priority": "alta"
+    })
+    assert create_3.status_code == 200
+    
+    
+    create_4 = client.post("/tasks", json={
+        "title": "Pendente baixa",
+        "completed": False,
+        "priority": "baixa"
+    })
+    assert create_4.status_code == 200
+
+    response = client.get(
+        "/tasks",
+        params={"completed": "true", "priority": "alta"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+
+    assert len(data) == 1
+    assert data[0]["id"] == expected_task["id"]
+    assert data[0]["completed"] is True
+    assert data[0]["priority"] == "alta"
+
+
+# ------------ POST ---------------
+
+def test_create_task(client):
+    payload = {
+        "title": "testando",
+        "completed": False,
+        "priority": "media"
+    }
+
+    response = client.post("/tasks", json=payload)
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["title"] == payload["title"]
+    assert data["completed"] is False
+    assert data["priority"] == payload["priority"]
+    assert "id" in data
+
+
+def test_create_task_with_default_values(client):
+    payload = {
+        "title": "Teste POST"
+    }
+
+    response = client.post("/tasks", json=payload)
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert "id" in data
+    assert data["title"] == payload["title"]
+    assert data["completed"] is False
+    assert data["priority"] == "media"
+
+
+def test_create_task_without_title(client):
+    payload = {
+        "completed": False,
+        "priority": "media"
+    }
+
+    response = client.post("/tasks", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_create_task_with_invalid_priority(client):
+    payload = {
+        "title": "Testar prioridade invalida",
+        "completed": False,
+        "priority": "urgente",
+    }
+
+    response = client.post("/tasks", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_create_task_with_invalid_completed(client):
+    payload = {
+        "title": "Testar completed invalido",
+        "completed": "invalido",
+        "priority": "media",
+    }
+
+    response = client.post("/tasks", json=payload)
+
+    assert response.status_code == 422
+
+
+#-------------- Get por Id --------------------
+
+def test_get_task_by_id(client):
+    payload = {
+        "title": "Consultar tarefa pelo ID",
+        "completed": False,
+        "priority": "alta",
+    }
+
+    create = client.post("/tasks", json=payload)
+    assert create.status_code == 200
+
+    created_task = create.json()
+
+    response = client.get(f"/tasks/{created_task['id']}")
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["id"] == created_task["id"]
+    assert data["title"] == payload["title"]
+    assert data["completed"] is False
+    assert data["priority"] == payload["priority"]
+
+
+def test_get_task_by_id_not_found(client):
+    response = client.post("/tasks", json={
+        "title": "Consultar tarefa pelo ID",
+        "completed": False,
+        "priority": "alta",
+    })
+
+    assert response.status_code == 200
+
+    created_task = response.json()
+
+    deleted_response = client.delete(f"/tasks/{created_task['id']}")
+    assert deleted_response.status_code == 200
+
+    get_response = client.get(f"/tasks/{created_task['id']}")
+
+    assert get_response.status_code == 404
+    assert get_response.json() == {"detail": "Tarefa não encontrada"}
+
+
+def test_get_task_by_id_invalid_id(client):
     response = client.get("/tasks/abc")
 
     assert response.status_code == 422
 
-    error = response.json()
 
-    assert "task_id" in str(error)
+#-------------- PUT ---------------
 
+def test_update_task(client):
+    payload = {
+        "title": "Tarefa original",
+        "completed": False,
+        "priority": "baixa",
+    }
+    create = client.post("/tasks", json=payload)
 
-def test_update_task_to_completed(client):
-    create_response = client.post(
-        "/tasks", json={"title": "Concluir testes do PATCH", "priority": "alta"}
+    assert create.status_code == 200
+    created_task = create.json()
+
+    update_payload = {
+        "title": "Tarefa atualizada",
+        "completed": True,
+        "priority": "alta",
+    }
+
+    response = client.put(
+        f"/tasks/{created_task['id']}",
+        json=update_payload,
     )
+    assert response.status_code == 200
+    data = response.json()
 
-    assert create_response.status_code == 200
+    assert data["id"] == created_task["id"]
+    assert data["title"] == update_payload["title"]
+    assert data["completed"] is True
+    assert data["priority"] == update_payload["priority"]
 
-    task_id = create_response.json()["id"]
+    get_response = client.get(f"/tasks/{created_task['id']}")
+    assert get_response.status_code == 200
+    updated_task = get_response.json()
 
-    patch_response = client.patch(
-        f"/tasks/{task_id}/status", json={"completed": True},
-    )
+    assert updated_task["id"] == created_task["id"]
+    assert updated_task["title"] == update_payload["title"]
+    assert updated_task["completed"] is True
+    assert updated_task["priority"] == update_payload["priority"]
 
-    assert patch_response.status_code == 200
 
-    assert patch_response.json()["id"] == task_id
-
-    assert  patch_response.json()["completed"] is True
-
-    response = client.get(f"/tasks/{task_id}")
+def test_update_task_not_found(client):
+    response = client.post("/tasks", json={
+        "title": "Consultar tarefa pelo ID",
+        "completed": False,
+        "priority": "alta",
+    })
 
     assert response.status_code == 200
 
-    task = response.json()
+    created_task = response.json()
 
-    assert task["title"] == "Concluir testes do PATCH"
-    assert task["priority"] == "alta"
-    assert task["completed"] is True
+    deleted_response = client.delete(f"/tasks/{created_task['id']}")
+    assert deleted_response.status_code == 200
+
+    update_payload = {
+        "title": "Tentativa de atualizacao",
+        "completed": True,
+        "priority": "alta",
+    }
+
+    response = client.put(
+        f"/tasks/{created_task['id']}",
+        json=update_payload,
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tarefa não encontrada"}
+
+
+def test_update_task_without_required_field(client):
+    create = client.post("/tasks", json={
+        "title": "Omitir campo obrigatorio",
+        "completed": False,
+        "priority": "alta",
+    })
+    assert create.status_code == 200 
+    created_task = create.json()
+
+    update = client.put(f"/tasks/{created_task['id']}", json= {
+            "title": "Tentativa sem prioridade",
+            "completed": True,
+        })
+    assert update.status_code == 422
+
+
+def test_update_task_with_invalid_priority(client):
+    payload = {
+        "title": "Tarefa original",
+        "completed": False,
+        "priority": "baixa",
+    }
+    create = client.post("/tasks", json=payload)
+    assert create.status_code == 200
+    created_task = create.json()
+
+    update_payload = {
+        "title": "Tentativa de alteracao",
+        "completed": True,
+        "priority": "urgente",
+    }
+
+    update = client.put(f"/tasks/{created_task['id']}", json=update_payload)
+    assert update.status_code == 422
+
+    search = client.get(f"/tasks/{created_task['id']}")
+    assert search.status_code == 200
+    data = search.json()
+
+    assert data["id"] == created_task["id"]
+    assert data["title"] == payload["title"]
+    assert data["completed"] is False
+    assert data["priority"] == payload["priority"]
+
+
+# ----------------- PATCH status ---------------
+
+def test_update_task_status_to_completed(client):
+    payload = {
+        "title": "Concluir tarefa",
+        "completed": False,
+        "priority": "media",
+    }
+    create = client.post("/tasks", json=payload)
+    assert create.status_code == 200
+    created_task = create.json()
+
+    update = client.patch(
+        f"/tasks/{created_task['id']}/status",
+        json={"completed": True},
+    )
+    assert update.status_code == 200
+    data = update.json()
+
+    assert data["id"] == created_task["id"]
+    assert data["completed"] is True
+    assert data["title"] == payload["title"]
+    assert data["priority"] == payload["priority"]
+
+    search = client.get(f"/tasks/{created_task['id']}")
+    assert search.status_code == 200
+    updated_task = search.json()
+
+    assert updated_task["id"] == created_task["id"]
+    assert updated_task["completed"] is True
+    assert updated_task["title"] == payload["title"]
+    assert updated_task["priority"] == payload["priority"]
 
 
 def test_update_task_status_to_pending(client):
-    create_response = client.post(
-        "/tasks", json={"title": "Mudar para pendente", "priority": "alta"}
+    payload = {
+        "title": "Concluir tarefa",
+        "completed": True,
+        "priority": "media",
+    }
+    create = client.post("/tasks", json=payload)
+    assert create.status_code == 200
+    created_task = create.json()
+
+    update = client.patch(
+        f"/tasks/{created_task['id']}/status",
+        json={"completed": False},
     )
+    assert update.status_code == 200
+    data = update.json()
 
-    assert create_response.status_code == 200
+    assert data["id"] == created_task["id"]
+    assert data["completed"] is False
+    assert data["title"] == payload["title"]
+    assert data["priority"] == payload["priority"]
 
-    task_id = create_response.json()["id"]
+    search = client.get(f"/tasks/{created_task['id']}")
+    assert search.status_code == 200
+    updated_task = search.json()
 
-    patch_response1 = client.patch(
-        f"/tasks/{task_id}/status", json={"completed": True}
-    )
-
-    assert patch_response1.status_code == 200
-    assert patch_response1.json()["completed"] is True
-    
-    patch_response2 = client.patch(
-        f"/tasks/{task_id}/status", json={"completed": False}
-    )
-
-    assert patch_response2.status_code == 200
-    assert patch_response2.json()["completed"] is False
-
-    response = client.get(f"/tasks/{task_id}")
-    
-    assert response.status_code == 200
-    
-    task = response.json()
-    assert task["completed"] is False
+    assert updated_task["id"] == created_task["id"]
+    assert updated_task["completed"] is False
+    assert updated_task["title"] == payload["title"]
+    assert updated_task["priority"] == payload["priority"]
 
 
 def test_update_task_status_not_found(client):
-    patch_response = client.patch(
-        "/tasks/999/status", json={"completed": True}
+    payload = {
+        "title": "Concluir tarefa",
+        "completed": False,
+        "priority": "media",
+    }
+    create = client.post("/tasks", json=payload)
+    assert create.status_code == 200
+    created_task = create.json()
+
+    remove = client.delete(f"/tasks/{created_task['id']}")
+    assert remove.status_code == 200
+
+    update = client.patch(
+        f"/tasks/{created_task['id']}/status",
+        json={"completed": True},
     )
 
-    assert patch_response.status_code == 404
-    assert patch_response.json() == {"detail": "Tarefa não encontrada"}
+    assert update.status_code == 404
+    assert update.json() == {"detail": "Tarefa não encontrada"}
+
+# ----------------- DELETE -------------------
+    
+def test_delete_task(client):
+    create = client.post("/tasks", json={
+        "title": "Tarefa valida",
+        "completed": False,
+        "priority": "media"
+    })
+    assert create.status_code == 200
+    created_task = create.json()
+
+    remove = client.delete(f"/tasks/{created_task['id']}")
+    assert remove.status_code == 200
+
+    search = client.get(f"/tasks/{created_task['id']}")
+
+    assert search.status_code == 404
+    assert search.json() == {"detail": "Tarefa não encontrada"}
+
+
+def test_delete_task_not_found(client):
+    create = client.post("/tasks", json={
+        "title": "Tarefa valida",
+        "completed": False,
+        "priority": "media"
+    })
+    assert create.status_code == 200
+    created_task = create.json()
+
+    remove = client.delete(f"/tasks/{created_task['id']}")
+    assert remove.status_code == 200
+
+    second_remove = client.delete(f"/tasks/{created_task['id']}")
+
+    assert second_remove.status_code == 404
+    assert second_remove.json() == {"detail": "Tarefa não encontrada"}
