@@ -7,14 +7,11 @@ from app.crud_postgres import (
     delete_task as delete_task_from_db
 )
 from fastapi import FastAPI, HTTPException
-from app.database import init_db
 from datetime import datetime
 
 from app.schemas import TaskCreate, TaskUpdate, TaskUpdateStatus, Priority
 
 app = FastAPI()
-
-init_db()
 
 
 @app.post("/tasks")
