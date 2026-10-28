@@ -19,6 +19,10 @@ Projeto de estudos com foco em desenvolvimento de APIs, persistência de dados, 
 - Excluir tarefas.
 - Validar os dados de entrada com Pydantic.
 - Executar testes de integração com um banco PostgreSQL separado.
+- Interface web simples em HTML, CSS e JavaScript para consumir a API.
+- Criar, editar, concluir e excluir tarefas pela interface.
+- Filtrar tarefas por status e prioridade na interface.
+- Exibir contadores das tarefas mostradas.
 
 ## Tecnologias
 
@@ -123,6 +127,20 @@ Documentação interativa:
 ```text
 http://127.0.0.1:8000/docs
 ```
+
+### 8. Abrir o frontend
+
+Com a API em execução, abra a pasta do projeto no VS Code e inicie o arquivo `frontend/index.html` com a extensão Live Server.
+
+A interface deve ficar disponível em um endereço semelhante a:
+
+```text
+http://127.0.0.1:5500/frontend/index.html
+```
+
+O frontend usa a API em `http://127.0.0.1:8000`.
+
+O CORS da API está configurado para aceitar requisições vindas de `http://127.0.0.1:5500`. Se você abrir o frontend em outra origem, ajuste `allow_origins` em `app/main.py`.
 
 ## Endpoints
 
@@ -357,6 +375,10 @@ taskmanager/
 │   ├── main.py
 │   ├── models.py
 │   └── schemas.py
+├── frontend/
+│   ├── index.html
+│   ├── script.js
+│   └── style.css
 ├── test/
 │   ├── conftest.py
 │   └── test_tasks.py
@@ -374,3 +396,6 @@ Os arquivos `.env` e `.env.test` devem ser criados localmente e não devem ser p
 - A inicialização da API não cria automaticamente as tabelas do PostgreSQL.
 - Execute os comandos a partir da raiz do projeto.
 - O projeto foi desenvolvido para estudos e evolução prática de uma API REST.
+- O frontend foi criado para exercitar a API e não possui autenticação.
+- A interface ainda não possui testes automatizados.
+- Os 24 testes automatizados existentes cobrem a API, não o JavaScript do frontend.
