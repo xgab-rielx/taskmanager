@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskManager</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <main>
+        <h1>TaskManager</h1>
+        <p>Organize suas tarefas.</p>
+
+        <form id="task-form">
+            <label for="task-title">Título (obrigatório)</label>
+            <input type="text" id="task-title" name="title" required>
+            <label for="task-priority">Prioridade</label>
+            <select name="priority" id="task-priority">
+                <option value="baixa">Baixa</option>
+                <option value="media" selected>Média</option>
+                <option value="alta">Alta</option>
+            </select>
+            <button type="submit" id="create-task-button">
+                Criar tarefa
+            </button>
+            <button type="button" id="cancel-edit-button" hidden>
+                Cancelar edição
+            </button>
+        </form>
+
+        <p id="feedback" role="status"></p>
+
+        <h2>Tarefas</h2>
+
+        <label for="status-filter">Filtrar por status</label>
+
+        <select id="status-filter">
+            <option value="">Todas</option>
+            <option value="false">Pendente</option>
+            <option value="true">Concluida</option>
+        </select>
+
+        <label for="priority-filter">Filtrar por prioridade</label>
+
+        <select  id="priority-filter">
+            <option value="">Todas</option>
+            <option value="baixa">Baixa</option>
+            <option value="media">Média</option>
+            <option value="alta">Alta</option>
+        </select>
+
+        <p id="task-counter"></p>
+
+        <ul id="task-list"></ul>
+    </main>
+    
+</body>
+</html>

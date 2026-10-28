@@ -7,11 +7,19 @@ from app.crud_postgres import (
     delete_task as delete_task_from_db
 )
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 
 from app.schemas import TaskCreate, TaskUpdate, TaskUpdateStatus, Priority
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5500"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "PUT"],
+    allow_headers=["Content-Type"],
+)
 
 
 @app.post("/tasks")
