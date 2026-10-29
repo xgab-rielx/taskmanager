@@ -1,0 +1,18 @@
+# Configuracoes locais e credenciais
+.env
+.env.*
+
+# Ambientes virtuais
+venv/
+.venv/
+
+# Cache do Python e dos testes
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Historico Git e configuracoes do editor
+.git/
+.vscode/

@@ -36,8 +36,10 @@ Projeto de estudos com foco em desenvolvimento de APIs, persistência de dados, 
 - pytest
 - HTTPX / TestClient
 - Uvicorn
+- Docker
+- Docker Compose
 
-## Pré-requisitos
+## Pré-requisitos para execução local
 
 - Python instalado.
 - Git instalado.
@@ -46,7 +48,7 @@ Projeto de estudos com foco em desenvolvimento de APIs, persistência de dados, 
 
 Os comandos de ativação do ambiente virtual abaixo usam Windows PowerShell.
 
-## Como executar
+## Como executar localmente
 
 ### 1. Clonar o repositório
 
@@ -141,6 +143,109 @@ http://127.0.0.1:5500/frontend/index.html
 O frontend usa a API em `http://127.0.0.1:8000`.
 
 O CORS da API está configurado para aceitar requisições vindas de `http://127.0.0.1:5500`. Se você abrir o frontend em outra origem, ajuste `allow_origins` em `app/main.py`.
+
+## Execução com Docker Compose
+
+### Pré-requisitos
+
+- Docker Desktop instalado e em execução, com suporte a containers Linux.
+- Porta 8000 disponível.
+
+Não é necessário instalar Python ou PostgreSQL no computador para
+executar o backend por este método.
+
+### Configuração
+
+Crie um arquivo `.env` na raiz do projeto:
+
+```dotenv
+DB_USER=taskmanager_app
+DB_PASSWORD='substitua_por_uma_senha_local'
+DB_NAME=taskmanager
+```
+
+Não publique esse arquivo nem credenciais reais no Git.
+
+O Compose configura a API para usar `DB_HOST=db` e `DB_PORT=5432`.
+Os valores de host e porta de uma instalação local, caso também estejam
+no `.env`, não são usados pelos serviços desta configuração.
+
+O banco do Docker é separado de uma instalação local do PostgreSQL.
+Os dados existentes no PostgreSQL local não são copiados automaticamente.
+
+### Primeira execução
+
+Execute os comandos na raiz do projeto.
+
+1. Inicie o banco:
+
+```bash
+docker compose --env-file .env up -d db
+```
+
+2. Construa a imagem da API e crie as tabelas:
+
+```bash
+docker compose --env-file .env run --build --rm api python create_tables.py
+```
+
+3. Inicie a API:
+
+```bash
+docker compose --env-file .env up -d api
+```
+
+Documentação interativa:
+
+http://127.0.0.1:8000/docs
+
+O frontend continua sendo executado separadamente pelo Live Server em
+http://127.0.0.1:5500.
+
+### Execuções seguintes
+
+```bash
+docker compose --env-file .env up -d
+```
+
+Após alterações no código ou nas dependências, reconstrua a imagem:
+
+```bash
+docker compose --env-file .env up -d --build
+```
+
+### Status e logs
+
+```bash
+docker compose --env-file .env ps
+docker compose --env-file .env logs --tail 50 api
+docker compose --env-file .env logs --tail 50 db
+```
+
+### Encerrar o ambiente
+
+```bash
+docker compose --env-file .env down
+```
+
+Os dados ficam no volume nomeado `postgres_data` e são reutilizados
+quando o ambiente é iniciado novamente.
+
+Atenção: `docker compose --env-file .env down -v` remove também o volume
+e apaga os dados desse banco. Não use essa opção para apenas encerrar
+a aplicação.
+
+### Observações
+
+- A API fica disponível apenas no endereço local 127.0.0.1:8000.
+- O banco não publica uma porta para acesso direto pelo Windows.
+- As credenciais de inicialização do PostgreSQL são aplicadas quando
+  o volume está vazio. Alterar o `.env` depois não altera automaticamente
+  a senha de um usuário já criado.
+- O usuário inicial do banco possui privilégios de superusuário.
+  Esta configuração é destinada ao laboratório local, não à produção.
+- O script `create_tables.py` cria tabelas ausentes; não substitui
+  uma ferramenta de migração para alterações futuras no esquema.
 
 ## Endpoints
 
@@ -382,8 +487,11 @@ taskmanager/
 ├── test/
 │   ├── conftest.py
 │   └── test_tasks.py
+├── .dockerignore
 ├── .gitignore
+├── compose.yaml
 ├── create_tables.py
+├── Dockerfile
 ├── README.md
 └── requirements.txt
 ```
