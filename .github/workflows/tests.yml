@@ -1,11 +1,11 @@
-name: Testes de API
+name: Testes da API
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispach:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,7 +13,7 @@ permissions:
 jobs:
   tests:
     name: Testes com PostgreSQL
-    runs-on: ubunto-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     services:
@@ -25,44 +25,44 @@ jobs:
           POSTGRES_DB: taskmanager_test
         ports:
           - 5432:5432
-        options:
+        options: >-
           --health-cmd "pg_isready -U ci_user -d taskmanager_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
-      env:
-        BD_USER: ci_user
-        DB_PASSWORD: ci_password
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: taskmanager_test
+    env:
+      DB_USER: ci_user
+      DB_PASSWORD: ci_password
+      DB_HOST: localhost
+      DB_PORT: "5432"
+      DB_NAME: taskmanager_test
 
-      steps:
-        - name: Baixar o codigo
-          uses: actions/checkout@v6
+    steps:
+      - name: Baixar o codigo
+        uses: actions/checkout@v6
 
-        - name: Configurar Python
-          uses: actions/setup-python@v5
-          with:
-            python-version: "3.14"
-            cache: pip
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
 
-        - name: Instalar dependencias
-          run: |
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
 
-        - name: Criar configuracao temporaria de testes
-          run: |
-            python - <<'PY'
-            import os
-            from pathlib import Path
+      - name: Criar configuracao temporaria de testes
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
 
-            keys = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_HOST", "DB_NAME"]
-            content = "".join(f"{key}={os.environ[key]}\n" for key in keys)
-            Path(".env.test").write_text(content, encoding="utf-8")
-            PY
+          keys = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME"]
+          content = "".join(f"{key}={os.environ[key]}\n" for key in keys)
+          Path(".env.test").write_text(content, encoding="utf-8")
+          PY
 
-        - name: Executar testes
-          run: python -m pytest test/test_tasks.py -v
+      - name: Executar testes
+        run: python -m pytest test/test_tasks.py -v
