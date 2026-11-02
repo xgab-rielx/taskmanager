@@ -1,0 +1,68 @@
+name: Testes de API
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispach:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Testes com PostgreSQL
+    runs-on: ubunto-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_password
+          POSTGRES_DB: taskmanager_test
+        ports:
+          - 5432:5432
+        options:
+          --health-cmd "pg_isready -U ci_user -d taskmanager_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      env:
+        BD_USER: ci_user
+        DB_PASSWORD: ci_password
+        DB_HOST: localhost
+        DB_PORT: "5432"
+        DB_NAME: taskmanager_test
+
+      steps:
+        - name: Baixar o codigo
+          uses: actions/checkout@v6
+
+        - name: Configurar Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: "3.14"
+            cache: pip
+
+        - name: Instalar dependencias
+          run: |
+            python -m pip install --upgrade pip
+            python -m pip install -r requirements.txt
+
+        - name: Criar configuracao temporaria de testes
+          run: |
+            python - <<'PY'
+            import os
+            from pathlib import Path
+
+            keys = ["DB_USER", "DB_PASSWORD", "DB_HOST", "DB_HOST", "DB_NAME"]
+            content = "".join(f"{key}={os.environ[key]}\n" for key in keys)
+            Path(".env.test").write_text(content, encoding="utf-8")
+            PY
+
+        - name: Executar testes
+          run: python -m pytest test/test_tasks.py -v
