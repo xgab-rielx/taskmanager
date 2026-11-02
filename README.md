@@ -401,6 +401,26 @@ A suíte possui 24 testes de integração:
 
 Os testes utilizam PostgreSQL real, separado do banco da aplicação.
 
+### Integração contínua com GitHub Actions
+
+O workflow `.github/workflows/tests.yml` executa os testes da API:
+
+- A cada push na branch `main`.
+- Em pull requests destinados à branch `main`.
+- Manualmente pela aba Actions.
+
+A execução utiliza Python 3.14 e um serviço PostgreSQL 18 temporário,
+com banco exclusivo `taskmanager_test`.
+
+O arquivo `.env.test` é gerado durante o workflow com credenciais
+descartáveis. As credenciais locais não são enviadas ao GitHub.
+
+Para acompanhar os resultados, abra a aba Actions do repositório
+e selecione o workflow "Testes da API".
+
+Esse workflow executa os testes da API; não realiza deploy
+nem constrói a imagem Docker.
+
 ### 1. Criar o banco de testes
 
 No PostgreSQL, usando uma conta com permissão para criar bancos:
